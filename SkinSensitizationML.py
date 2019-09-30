@@ -11,14 +11,11 @@ from sklearn.preprocessing import StandardScaler
 from sklearn.metrics import confusion_matrix
 from matplotlib.colors import ListedColormap
 
-
-# Import packages to do the classifying
-
 from sklearn.svm import SVC
 
 import csv
 
-with open(r'C:\Users\kirby\OneDrive\Documents\LateAugustMetaComb4.csv', 'rU') as infile:
+with open(r'C:\Users\INSERTCSVFILEPATHHERE.csv', 'rU') as infile:
   
     reader = csv.DictReader(infile)
     data = {}
@@ -31,7 +28,7 @@ with open(r'C:\Users\kirby\OneDrive\Documents\LateAugustMetaComb4.csv', 'rU') as
 
 print(infile)
 
-rawdata = pd.read_csv('C:\Users\kirby\OneDrive\Documents\LateAugustMetaComb4.csv', skiprows=0)
+rawdata = pd.read_csv('C:\Users\INSERTCSVFILEPATHHERE.csv', skiprows=0)
 #rawdata.drop(["GNPS"], axis = 1, inplace = True)
 
 print(rawdata)
