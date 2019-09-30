@@ -6,10 +6,7 @@ import scipy.stats as stats
 
 import csv
 
-# open the file in universal line ending mode to avoid "file does not exist error"
-
-with open(r'C:\Users\kirby\OneDrive\Documents\MidJuneData.csv', 'rU') as infile:
-  # read the file as a dictionary for each row ({header : value})
+with open(r'C:\Users\INSERTFILEPATH.csv', 'rU') as infile:
   reader = csv.DictReader(infile)
   data = {}
   for row in reader:
@@ -19,7 +16,6 @@ with open(r'C:\Users\kirby\OneDrive\Documents\MidJuneData.csv', 'rU') as infile:
       except KeyError:
         data[header] = [value]
 
-# extract the variables you want
 group1 = data['MW Positive Skin']
 group2 = data['MW Negative Skin']
 
