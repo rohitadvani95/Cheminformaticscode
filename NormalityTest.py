@@ -11,9 +11,9 @@ import re
 import scipy as sp
 
 from scipy.stats import anderson
-import time
 
-with open(r'C:\Users\kirby\OneDrive\Documents\Finalskindata.csv', 'rU') as infile:
+
+with open(r'C:\Users\INSERTFILEPATH.csv', 'rU') as infile:
     reader = csv.DictReader(infile)
     data = {}
     for row in reader:
@@ -24,14 +24,14 @@ with open(r'C:\Users\kirby\OneDrive\Documents\Finalskindata.csv', 'rU') as infil
                 data[header] = [value]
                 
 
-group1 = data['excurineneg']
+group1 = data['INSERTCOLUMNHEADER']
 
 print(group1)
 groupstrat = []
-for data['excurineneg'] in group1:
+for data['INSERTCOLUMNHEADER'] in group1:
 
-        if (len(data['excurineneg'])) > 1:
-                groupstrat.append(float(data['excurineneg']))
+        if (len(data['INSERTCOLUMNHEADER'])) > 1:
+                groupstrat.append(float(data['INSERTCOLUMNHEADER']))
                 
 
 
