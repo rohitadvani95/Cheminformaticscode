@@ -92,16 +92,3 @@ param_grid = {'base_estimator__max_depth': [2, 4, 6, 8]}
 #parameters = {'clf__C': logspace(-4,1,50)}
 grid_search = GridSearchCV(estimator=calibrated_forest, param_grid=param_grid, verbose=1, scoring='f1', cv=sss_inner)
 cross_val_score(grid_search, X, y, cv=sss_outer)
-
-
-
-#grid = GridSearchCV(clf(random_state=123),
- #                   param_grid = {'max_depth': [None, 2,3,5], 'max_features' : ['auto','sqrt', 'log2'], 'n_estimators': [10,100],},
-
-  #                  cv = sss(n_splits=5, random_state=123),
-   #                 verbose=50,
-    #                n_jobs=-1)
-#grid.fit(X_train, Y_train)
-
-#print('\nBest R^2 Score : %.2f'%grid.best_score_, ' Best Params : ', str(grid.best_params_))
-
