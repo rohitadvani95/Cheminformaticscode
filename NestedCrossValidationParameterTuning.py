@@ -35,8 +35,8 @@ from sklearn.pipeline import Pipeline
 from sklearn.pipeline import make_pipeline
 from sklearn.naive_bayes import GaussianNB
 from sklearn.preprocessing import StandardScaler
- 
-data = pd.read_csv(r'C:\Users\kirby\OneDrive\Documents\CompoundData\LateAugustMetaComb7.csv', skiprows=0)
+#INSERT FILE PATH, CONVERT FILE TO CSV BEFOREHAND
+data = pd.read_csv(r'INSERTFILEPATHHERE', skiprows=0)
 df = pd.DataFrame(data, columns = ['MW', 'SA', 'LogP'])
 X_input = np.array(df, dtype=(float))
 
