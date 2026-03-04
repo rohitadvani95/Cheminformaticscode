@@ -1,0 +1,49 @@
+"""Test a dataset column for normality using D'Agostino-Pearson
+and Shapiro-Wilk tests."""
+
+import pandas as pd
+import numpy as np
+from scipy import stats
+
+# --- Data Loading ---
+filepath = r'C:\Users\INSERTFILEPATH.csv'
+column = 'INSERTCOLUMNHEADER'
+
+rawdata = pd.read_csv(filepath)
+values = rawdata[column].dropna().astype(float).values
+
+print(f"Column: {column}")
+print(f"N samples: {len(values)}")
+print(f"Mean: {np.mean(values):.4f}")
+print(f"Std: {np.std(values):.4f}")
+
+alpha = 0.05
+
+# --- D'Agostino-Pearson Test ---
+# Requires n >= 20 to be reliable
+dag_stat, dag_pval = stats.normaltest(values)
+print(f"\nD'Agostino-Pearson Test:")
+print(f"  Statistic: {dag_stat:.4f}")
+print(f"  P-value: {dag_pval:.4e}")
+if dag_pval < alpha:
+    print(f"  Result: Reject normality (p < {alpha})")
+else:
+    print(f"  Result: Cannot reject normality (p >= {alpha})")
+
+# --- Shapiro-Wilk Test ---
+# Generally more powerful for smaller sample sizes
+shap_stat, shap_pval = stats.shapiro(values)
+print(f"\nShapiro-Wilk Test:")
+print(f"  Statistic: {shap_stat:.4f}")
+print(f"  P-value: {shap_pval:.4e}")
+if shap_pval < alpha:
+    print(f"  Result: Reject normality (p < {alpha})")
+else:
+    print(f"  Result: Cannot reject normality (p >= {alpha})")
+
+result = stats.anderson(values, dist='norm')
+print(f"\nAnderson-Darling Test:")
+print(f"  Statistic: {result.statistic:.4f}")
+for sig, crit in zip(result.significance_level, result.critical_values):
+    status = "Reject" if result.statistic > crit else "Cannot reject"
+    print(f"  {sig}% significance: critical={crit:.4f} -> {status}")
