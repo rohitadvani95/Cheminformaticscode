@@ -1,0 +1,35 @@
+"""Perform a Mann-Whitney U test comparing molecular weights
+of skin-positive and skin-negative compounds."""
+
+import pandas as pd
+from scipy import stats
+
+# Load data
+filepath = r'C:\Users\INSERTFILEPATH.csv'
+rawdata = pd.read_csv(filepath)
+
+# Extract groups and ensure numeric type
+group1 = rawdata['MW Positive Skin'].dropna().astype(float)
+group2 = rawdata['MW Negative Skin'].dropna().astype(float)
+
+# Run Mann-Whitney U test
+u_statistic, p_val = stats.mannwhitneyu(
+    group1, group2, alternative='two-sided'
+)
+
+# Report results
+alpha = 0.05
+
+print(f"Group 1 (Positive Skin): n={len(group1)}, "
+      f"median={group1.median():.3f}")
+print(f"Group 2 (Negative Skin): n={len(group2)}, "
+      f"median={group2.median():.3f}")
+print(f"\nU statistic: {u_statistic:.2f}")
+print(f"P value: {p_val:.4e}")
+
+if p_val < alpha:
+    print(f"\nResult is statistically significant "
+          f"(p < {alpha})")
+else:
+    print(f"\nResult is not statistically significant "
+          f"(p >= {alpha})")
