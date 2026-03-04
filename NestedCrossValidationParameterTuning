@@ -1,0 +1,195 @@
+"""Nested cross-validation with hyperparameter tuning
+for Random Forest classification of skin sensitization data."""
+
+import numpy as np
+import pandas as pd
+import matplotlib.pyplot as plt
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.model_selection import StratifiedKFold, GridSearchCV
+from sklearn.metrics import (
+    balanced_accuracy_score,
+    average_precision_score,
+    precision_recall_curve
+)
+
+# --- Data Loading ---
+data = pd.read_csv(r'INSERTFILEPATHHERE', skiprows=0)
+
+X = data[['MW', 'SA', 'LogP']].astype(float).values
+y = pd.to_numeric(data['Skin']).values
+feature_names = ['MW', 'SA', 'LogP']
+
+print(f"Dataset shape: {X.shape}")
+print(f"Class distribution: {np.bincount(y)}")
+
+# --- Cross-Validation Setup ---
+n_splits = 4
+outer_cv = StratifiedKFold(n_splits=n_splits, shuffle=True, random_state=42)
+inner_cv = StratifiedKFold(n_splits=3, shuffle=True, random_state=42)
+
+# --- Hyperparameter Grid ---
+param_grid = {
+    'max_depth': [3, 4, 5, 6, 7, None],
+    'min_samples_leaf': [1, 2, 3],
+    'min_samples_split': [2, 5],
+    'max_features': [1, 2, 3],
+    'bootstrap': [True, False],
+    'criterion': ['gini', 'entropy'],
+    'n_estimators': [100, 200]
+}
+
+# --- Storage Arrays ---
+accuracies_train = np.empty(n_splits, dtype=np.float64)
+accuracies_test = np.empty(n_splits, dtype=np.float64)
+avg_precisions_train = np.empty(n_splits, dtype=np.float64)
+avg_precisions_test = np.empty(n_splits, dtype=np.float64)
+
+interval = np.linspace(0, 1, 101, dtype=np.float64)
+precisions_train = np.empty((n_splits, 101), dtype=np.float64)
+precisions_test = np.empty((n_splits, 101), dtype=np.float64)
+
+feature_importances = np.zeros(
+    (n_splits, len(feature_names)), dtype=np.float64
+)
+best_params = []
+
+# --- Nested Cross-Validation Loop ---
+for i, (train_idx, test_idx) in enumerate(outer_cv.split(X, y)):
+    print(f"\n--- Outer Fold {i + 1}/{n_splits} ---")
+
+    X_train, X_test = X[train_idx], X[test_idx]
+    y_train, y_test = y[train_idx], y[test_idx]
+
+    # Inner CV for hyperparameter tuning
+    grid_search = GridSearchCV(
+        estimator=RandomForestClassifier(random_state=42),
+        param_grid=param_grid,
+        cv=inner_cv,
+        scoring='balanced_accuracy',
+        n_jobs=-1
+    )
+    grid_search.fit(X_train, y_train)
+
+    # Store best parameters for this fold
+    best_params.append(grid_search.best_params_)
+    print(f"Best params: {grid_search.best_params_}")
+    print(f"Best inner CV score: {grid_search.best_score_:.3f}")
+
+    # Get best model and generate predictions
+    best_model = grid_search.best_estimator_
+    pred_train = best_model.predict_proba(X_train)[:, 1]
+    pred_test = best_model.predict_proba(X_test)[:, 1]
+
+    # Compute balanced accuracy
+    accuracies_train[i] = balanced_accuracy_score(
+        y_train, (pred_train > 0.5).astype(int)
+    )
+    accuracies_test[i] = balanced_accuracy_score(
+        y_test, (pred_test > 0.5).astype(int)
+    )
+
+    # Compute average precision
+    avg_precisions_train[i] = average_precision_score(
+        y_train, pred_train
+    )
+    avg_precisions_test[i] = average_precision_score(
+        y_test, pred_test
+    )
+
+    # Interpolated precision-recall curves
+    prec_train, rec_train, _ = precision_recall_curve(
+        y_train, pred_train
+    )
+    precisions_train[i] = np.interp(
+        interval, rec_train[::-1], prec_train[::-1]
+    )
+
+    prec_test, rec_test, _ = precision_recall_curve(
+        y_test, pred_test
+    )
+    precisions_test[i] = np.interp(
+        interval, rec_test[::-1], prec_test[::-1]
+    )
+
+    # Store feature importances from the best model
+    feature_importances[i] = best_model.feature_importances_
+
+# --- Summary Statistics ---
+stats = {
+    'accuracy_train': np.mean(accuracies_train),
+    'accuracy_std_train': np.std(accuracies_train),
+    'accuracy_test': np.mean(accuracies_test),
+    'accuracy_std_test': np.std(accuracies_test),
+    'avg_precision_train': np.mean(avg_precisions_train),
+    'avg_precision_std_train': np.std(avg_precisions_train),
+    'avg_precision_test': np.mean(avg_precisions_test),
+    'avg_precision_std_test': np.std(avg_precisions_test),
+}
+
+print("\n--- Results ---")
+print(f"Train Accuracy: {stats['accuracy_train']:.3f} "
+      f"(+/- {stats['accuracy_std_train']:.3f})")
+print(f"Test Accuracy:  {stats['accuracy_test']:.3f} "
+      f"(+/- {stats['accuracy_std_test']:.3f})")
+print(f"Train Avg Precision: {stats['avg_precision_train']:.3f} "
+      f"(+/- {stats['avg_precision_std_train']:.3f})")
+print(f"Test Avg Precision:  {stats['avg_precision_test']:.3f} "
+      f"(+/- {stats['avg_precision_std_test']:.3f})")
+
+# --- Feature Importance Summary ---
+mean_importances = np.mean(feature_importances, axis=0)
+std_importances = np.std(feature_importances, axis=0)
+
+print("\n--- Feature Importances ---")
+for name, imp, std in zip(feature_names, mean_importances, std_importances):
+    print(f"  {name}: {imp:.3f} (+/- {std:.3f})")
+
+# --- Precision-Recall Curve Plot ---
+plt.figure(figsize=(8, 6))
+
+mean_prec_test = np.mean(precisions_test, axis=0)
+std_prec_test = np.std(precisions_test, axis=0)
+
+plt.plot(interval, mean_prec_test, color='blue', label='Mean Test PR')
+plt.fill_between(
+    interval,
+    mean_prec_test - std_prec_test,
+    mean_prec_test + std_prec_test,
+    alpha=0.2, color='blue'
+)
+
+mean_prec_train = np.mean(precisions_train, axis=0)
+std_prec_train = np.std(precisions_train, axis=0)
+
+plt.plot(interval, mean_prec_train, color='red', label='Mean Train PR')
+plt.fill_between(
+    interval,
+    mean_prec_train - std_prec_train,
+    mean_prec_train + std_prec_train,
+    alpha=0.2, color='red'
+)
+
+plt.xlabel('Recall')
+plt.ylabel('Precision')
+plt.title('Precision-Recall Curves (Nested CV)')
+plt.legend()
+plt.tight_layout()
+plt.savefig('precision_recall_curves.png', dpi=150)
+plt.show()
+
+# --- Feature Importance Bar Plot ---
+plt.figure(figsize=(8, 5))
+plt.bar(
+    feature_names, mean_importances,
+    yerr=std_importances, capsize=5, color='steelblue'
+)
+plt.ylabel('Importance')
+plt.title('Mean Feature Importances (Nested CV)')
+plt.tight_layout()
+plt.savefig('feature_importances.png', dpi=150)
+plt.show()
+
+# --- Best Parameters Per Fold ---
+print("\n--- Best Parameters Per Fold ---")
+for i, params in enumerate(best_params):
+    print(f"  Fold {i + 1}: {params}")
